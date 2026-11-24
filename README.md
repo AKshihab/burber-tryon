@@ -3,6 +3,7 @@
 A phone-first web app for a salon or barber shop.
 
 - **Styles** — try four haircuts and four hair colours on a 3D head you can turn.
+- **Try on** — pick a haircut, line your face up with the oval, and see the hair on your own head in the live camera.
 - **Catalog** — services with price and duration.
 - **Account or guest** — enter with just a name, or register with a phone number and password.
 - **Token** — take a place in the queue, see how many are ahead and the estimated wait.
@@ -33,6 +34,19 @@ npm start              # http://localhost:3001
 ```
 
 Tests: `npm test`
+
+## Camera try-on
+
+- Works in the browser with MediaPipe Face Landmarker; the camera picture never leaves the device.
+- The face model (`public/mediapipe/face_landmarker.task`) is in the repo. The wasm runtime is copied
+  into `public/mediapipe/wasm/` by `npm install` (`scripts/setup-tryon.mjs`). Nothing is fetched
+  from the internet while the app runs.
+- **Browsers only allow the camera on `localhost` or an `https://` address.** To use it on a phone,
+  the site must be served over HTTPS. On plain `http://192.168.x.x` the app says so and offers the
+  3D preview instead.
+- The hair is simple 3D shapes drawn over the picture. It follows the head, but it does not hide
+  the hair you already have, so it reads best on short hair.
+- If hair sits too high, low, big or small, adjust `HEAD_FIT` in `src/tryon/face.ts`.
 
 ## Settings
 
@@ -66,5 +80,6 @@ of the site before printing.
 ## Known limits
 
 - The alert only works while the token page is open; there is no SMS or push to a closed app.
+- The camera try-on needs HTTPS (or localhost) and a reasonably recent phone.
 - No payments, fixed-time bookings, multiple chairs or multiple branches.
 - The staff PIN is a single shared PIN, sent with each staff request. Serve the site over HTTPS.

@@ -10,6 +10,7 @@ export function Styles() {
       <StylePicker choice={choice} />
       <HairViewer styleKey={choice.styleKey} color={choice.color} />
       <p className="muted small">Drag the head to see the sides and back.</p>
+      <Link to="/try-on">Try it on my face</Link>
       <Link className="primary" to="/token">
         Take a token with this style
       </Link>

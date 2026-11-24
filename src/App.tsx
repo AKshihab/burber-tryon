@@ -5,6 +5,7 @@ import { Review } from './pages/Review.tsx';
 import { Staff } from './pages/Staff.tsx';
 import { Styles } from './pages/Styles.tsx';
 import { Token } from './pages/Token.tsx';
+import { TryOn } from './pages/TryOn.tsx';
 import { Welcome } from './pages/Welcome.tsx';
 import { useSession } from './session.tsx';
 
@@ -12,6 +13,7 @@ export const SALON_NAME = 'Burber';
 
 const NAV = [
   { to: '/styles', label: 'Styles' },
+  { to: '/try-on', label: 'Try on' },
   { to: '/catalog', label: 'Catalog' },
   { to: '/token', label: 'Token' },
 ];
@@ -49,6 +51,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<Welcome />} />
       <Route path="/styles" element={<Shell><Styles /></Shell>} />
+      <Route path="/try-on" element={<Shell><TryOn /></Shell>} />
       <Route path="/catalog" element={<Shell><Catalog /></Shell>} />
       <Route path="/token" element={<Shell><Token /></Shell>} />
       <Route path="/review" element={<Review />} />
