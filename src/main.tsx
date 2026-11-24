@@ -1,3 +1,16 @@
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { AppRoutes } from './App.tsx';
+import { SessionProvider } from './session.tsx';
+import './styles.css';
 
-createRoot(document.getElementById('root')!).render(<h1>Salon</h1>);
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <BrowserRouter>
+      <SessionProvider>
+        <AppRoutes />
+      </SessionProvider>
+    </BrowserRouter>
+  </StrictMode>,
+);
