@@ -2,14 +2,10 @@ import express from 'express';
 import type { Express, NextFunction, Request, Response } from 'express';
 import path from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
+import { authRouter } from './auth.ts';
+import { HttpError } from './http.ts';
 
-export class HttpError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
+export { HttpError };
 
 export type AppOptions = { staffPin: string; now?: () => Date; staticDir?: string };
 
@@ -28,6 +24,8 @@ export function createApp(db: DatabaseSync, opts: AppOptions): Express {
       .all();
     res.json({ services });
   });
+
+  app.use('/api/auth', authRouter(db));
 
   app.use('/api', (_req, _res, next) => {
     next(new HttpError(404, 'Not found'));
