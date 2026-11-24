@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { Catalog } from './pages/Catalog.tsx';
 import { Styles } from './pages/Styles.tsx';
+import { Token } from './pages/Token.tsx';
 import { Welcome } from './pages/Welcome.tsx';
 import { useSession } from './session.tsx';
 
@@ -56,7 +57,7 @@ export function AppRoutes() {
       <Route path="/" element={<Welcome />} />
       <Route path="/styles" element={<Shell><Styles /></Shell>} />
       <Route path="/catalog" element={<Shell><Catalog /></Shell>} />
-      <Route path="/token" element={<Shell><Soon title="Token" /></Shell>} />
+      <Route path="/token" element={<Shell><Token /></Shell>} />
       <Route path="/review" element={<Soon title="Review" />} />
       <Route path="/staff" element={<Soon title="Staff" />} />
       <Route path="*" element={<Navigate to="/" replace />} />
