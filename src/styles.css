@@ -506,7 +506,7 @@ main {
   color: var(--muted);
 }
 
-.star[aria-pressed='true'] {
+.star[data-lit='true'] {
   color: var(--accent);
   border-color: var(--accent);
 }

@@ -40,7 +40,9 @@ export function createApp(db: DatabaseSync, opts: AppOptions): Express {
   if (opts.staticDir) {
     const dir = path.resolve(opts.staticDir);
     app.use(express.static(dir));
-    app.get(/.*/, (_req, res) => {
+    // Page addresses (/review, /staff ...) get the app shell; a missing file is a real 404.
+    app.get(/.*/, (req, res) => {
+      if (path.extname(req.path)) throw new HttpError(404, 'Not found');
       res.sendFile(path.join(dir, 'index.html'));
     });
   }

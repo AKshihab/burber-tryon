@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { Catalog } from './pages/Catalog.tsx';
+import { Review } from './pages/Review.tsx';
+import { Staff } from './pages/Staff.tsx';
 import { Styles } from './pages/Styles.tsx';
 import { Token } from './pages/Token.tsx';
 import { Welcome } from './pages/Welcome.tsx';
@@ -13,15 +15,6 @@ const NAV = [
   { to: '/catalog', label: 'Catalog' },
   { to: '/token', label: 'Token' },
 ];
-
-function Soon({ title }: { title: string }) {
-  return (
-    <section className="page">
-      <h1>{title}</h1>
-      <p className="muted">Coming soon.</p>
-    </section>
-  );
-}
 
 /** Customer pages: need a session, share the top bar and bottom navigation. */
 function Shell({ children }: { children: ReactNode }) {
@@ -58,8 +51,8 @@ export function AppRoutes() {
       <Route path="/styles" element={<Shell><Styles /></Shell>} />
       <Route path="/catalog" element={<Shell><Catalog /></Shell>} />
       <Route path="/token" element={<Shell><Token /></Shell>} />
-      <Route path="/review" element={<Soon title="Review" />} />
-      <Route path="/staff" element={<Soon title="Staff" />} />
+      <Route path="/review" element={<Review />} />
+      <Route path="/staff" element={<Staff />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
