@@ -65,7 +65,11 @@ export function TryOnView({ styleKey, color, onHint, onError }: Props) {
       } catch (err) {
         return fail(cameraErrorMessage(err, true));
       }
-      if (cancelled) return;
+      if (cancelled) {
+        // The customer left while the camera was starting: cleanup ran before there was a stream to stop.
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       video.srcObject = stream;
       try {
         await video.play();
@@ -80,7 +84,10 @@ export function TryOnView({ styleKey, color, onHint, onError }: Props) {
       } catch {
         return fail('The face tracker could not be loaded. Use the 3D preview instead.');
       }
-      if (cancelled) return;
+      if (cancelled) {
+        tracker.close();
+        return;
+      }
 
       try {
         renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });

@@ -108,3 +108,20 @@ test('staff next advances the queue', async () => {
   expect((await next()).body).toEqual({ serving: null });
   expect((await request(app).get('/api/staff/queue').set(PIN)).body).toEqual({ tokens: [] });
 });
+
+test('wrong pins are limited to five a minute, then even the right pin must wait', async () => {
+  const wrong = () => request(app).get('/api/staff/queue').set('x-staff-pin', '0000');
+  for (let i = 0; i < 5; i++) expect((await wrong()).status).toBe(401);
+  const blocked = await wrong();
+  expect(blocked.status).toBe(429);
+  expect(blocked.body.error).toEqual(expect.any(String));
+  expect((await request(app).get('/api/staff/queue').set(PIN)).status).toBe(429);
+  clock = new Date('2026-11-25T10:01:01');
+  expect((await request(app).get('/api/staff/queue').set(PIN)).status).toBe(200);
+});
+
+test('a correct pin clears earlier slips', async () => {
+  for (let i = 0; i < 4; i++) await request(app).get('/api/staff/queue').set('x-staff-pin', '0000');
+  expect((await request(app).get('/api/staff/queue').set(PIN)).status).toBe(200);
+  for (let i = 0; i < 4; i++) expect((await request(app).get('/api/staff/queue').set('x-staff-pin', '0000')).status).toBe(401);
+});

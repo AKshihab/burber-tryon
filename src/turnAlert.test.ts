@@ -60,3 +60,15 @@ test('does not throw when the browser refuses to build one', () => {
   });
   expect(() => sendTurnNotification(token())).not.toThrow();
 });
+
+test('falls back to the service worker where pages may not build notifications (Android)', async () => {
+  stubNotification('granted', () => {
+    throw new TypeError('Illegal constructor');
+  });
+  const showNotification = vi.fn();
+  vi.stubGlobal('navigator', { serviceWorker: { ready: Promise.resolve({ showNotification }) } });
+  sendTurnNotification(token());
+  await vi.waitFor(() =>
+    expect(showNotification).toHaveBeenCalledWith('Your turn is close', { body: 'Token 7: about 12 min to go.' }),
+  );
+});

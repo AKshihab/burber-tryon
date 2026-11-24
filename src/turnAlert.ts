@@ -1,6 +1,6 @@
 import type { TokenView } from './api.ts';
 
-/** How often the token screen asks the server where the queue is. */
+/** How often the app asks the server where the queue is. */
 export const POLL_MS = 15000;
 
 /** True when this token has just come within the alert window and has not been announced yet. */
@@ -16,14 +16,39 @@ export function notificationPermission(): NotificationPermission | 'unsupported'
   }
 }
 
-/** Show a system notification if the user allowed them. Never throws: the in-app banner is the fallback. */
+/**
+ * Show a system notification if the user allowed them. Never throws: the in-app banner is the fallback.
+ * Desktop browsers let a page build a Notification directly; Chrome on Android refuses and only
+ * allows it through a service worker (public/sw.js), so that is tried second.
+ */
 export function sendTurnNotification(token: TokenView): void {
   if (notificationPermission() !== 'granted') return;
+  const title = 'Your turn is close';
+  const options = { body: `Token ${token.number}: about ${token.etaMinutes} min to go.` };
   try {
-    new Notification('Your turn is close', {
-      body: `Token ${token.number}: about ${token.etaMinutes} min to go.`,
+    new Notification(title, options);
+    return;
+  } catch {
+    /* fall through to the service worker */
+  }
+  try {
+    navigator.serviceWorker?.ready
+      .then((registration) => registration.showNotification(title, options))
+      .catch(() => {
+        /* no notification on this device; the banner still shows */
+      });
+  } catch {
+    /* no service worker support */
+  }
+}
+
+/** Register the service worker that lets phones show the turn notification. Safe to call anywhere. */
+export function registerNotificationWorker(): void {
+  try {
+    void navigator.serviceWorker?.register('/sw.js').catch(() => {
+      /* not available (http, private mode): notifications fall back to the banner */
     });
   } catch {
-    /* some mobile browsers only allow notifications from a service worker */
+    /* no service worker support */
   }
 }

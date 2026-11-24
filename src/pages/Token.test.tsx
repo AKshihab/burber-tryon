@@ -4,6 +4,7 @@ import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { TokenView } from '../api.ts';
 import { Token } from './Token.tsx';
+import { TokenWatchProvider, TurnBanner } from '../tokenWatch.tsx';
 import { renderApp, stubFetch } from '../testkit.tsx';
 import type { Call, Reply } from '../testkit.tsx';
 
@@ -43,6 +44,14 @@ function fakeApi(start: TokenView | null, onPost?: (call: Call) => Reply) {
   return { state, calls };
 }
 
+const renderToken = () =>
+  renderApp(
+    <TokenWatchProvider>
+      <TurnBanner />
+      <Token />
+    </TokenWatchProvider>,
+  );
+
 function stubNotification(permission: string) {
   const made = vi.fn();
   const requestPermission = vi.fn(async () => 'granted');
@@ -60,7 +69,7 @@ function stubNotification(permission: string) {
 test('taking a token sends the service and the remembered style', async () => {
   localStorage.setItem('salon.style', 'quiff');
   const { calls } = fakeApi(null);
-  renderApp(<Token />);
+  renderToken();
   expect(await screen.findByText('Style: Quiff')).toBeTruthy();
   await userEvent.selectOptions(screen.getByLabelText('Service'), 'Beard trim');
   await userEvent.click(screen.getByRole('button', { name: 'Take token' }));
@@ -73,7 +82,7 @@ test('taking a token sends the service and the remembered style', async () => {
 
 test('without a remembered style only the service is sent', async () => {
   const { calls } = fakeApi(null);
-  renderApp(<Token />);
+  renderToken();
   await userEvent.click(await screen.findByRole('button', { name: 'Take token' }));
   await screen.findByRole('heading', { name: 'Token 3' });
   expect(calls.find((c) => c.method === 'POST')!.body).toEqual({ serviceId: 1 });
@@ -83,7 +92,7 @@ test('without a remembered style only the service is sent', async () => {
 test('the banner appears when a later check says the turn is close', async () => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
   const { state } = fakeApi(token({ number: 5 }));
-  renderApp(<Token />);
+  renderToken();
   await screen.findByRole('heading', { name: 'Token 5' });
   expect(screen.queryByRole('status')).toBeNull();
   state.mine = token({ number: 5, aheadCount: 1, etaMinutes: 15, notifySoon: true });
@@ -97,26 +106,26 @@ test('the banner appears when a later check says the turn is close', async () =>
 test('the banner still appears where notifications are unsupported', async () => {
   vi.stubGlobal('Notification', undefined);
   fakeApi(token({ notifySoon: true, etaMinutes: 10 }));
-  renderApp(<Token />);
+  renderToken();
   expect(await screen.findByRole('status')).toBeTruthy();
 });
 
 test('a notification is sent once, not again after a reload', async () => {
   const first = stubNotification('granted');
   fakeApi(token({ notifySoon: true, etaMinutes: 10 }));
-  const view = renderApp(<Token />);
+  const view = renderToken();
   await screen.findByRole('status');
   expect(first.made).toHaveBeenCalledTimes(1);
   expect(first.made).toHaveBeenCalledWith('Your turn is close', { body: 'Token 3: about 10 min to go.' });
   view.unmount();
-  renderApp(<Token />);
+  renderToken();
   await screen.findByRole('status');
   expect(first.made).toHaveBeenCalledTimes(1);
 });
 
 test('being served shows no countdown and no banner', async () => {
   fakeApi(token({ status: 'serving', aheadCount: 0, etaMinutes: 0, notifySoon: false }));
-  renderApp(<Token />);
+  renderToken();
   expect(await screen.findByText('You are being served')).toBeTruthy();
   expect(screen.queryByRole('status')).toBeNull();
   expect(screen.queryByText(/ahead of you/)).toBeNull();
@@ -125,14 +134,14 @@ test('being served shows no countdown and no banner', async () => {
 test('the device alert can be switched on while waiting', async () => {
   const n = stubNotification('default');
   fakeApi(token());
-  renderApp(<Token />);
+  renderToken();
   await userEvent.click(await screen.findByRole('button', { name: 'Alert me on this device' }));
   expect(n.requestPermission).toHaveBeenCalledTimes(1);
 });
 
 test('cancelling returns to the service form', async () => {
   const { calls } = fakeApi(token());
-  renderApp(<Token />);
+  renderToken();
   await userEvent.click(await screen.findByRole('button', { name: 'Cancel token' }));
   expect(await screen.findByRole('button', { name: 'Take token' })).toBeTruthy();
   expect(calls.some((c) => c.method === 'DELETE' && c.url === '/api/tokens/mine')).toBe(true);
@@ -140,7 +149,7 @@ test('cancelling returns to the service form', async () => {
 
 test('a refused token shows the reason', async () => {
   fakeApi(null, () => ({ status: 409, body: { error: 'You already have a token today' } }));
-  renderApp(<Token />);
+  renderToken();
   await userEvent.click(await screen.findByRole('button', { name: 'Take token' }));
   expect((await screen.findByRole('alert')).textContent).toBe('You already have a token today');
 });
@@ -148,7 +157,7 @@ test('a refused token shows the reason', async () => {
 test('polling stops when the screen is left', async () => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
   const { calls } = fakeApi(token());
-  const view = renderApp(<Token />);
+  const view = renderToken();
   await screen.findByRole('heading', { name: 'Token 3' });
   view.unmount();
   const before = calls.length;

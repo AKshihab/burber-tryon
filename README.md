@@ -52,7 +52,7 @@ Tests: `npm test`
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `STAFF_PIN` | `1234` | PIN for the staff screen at `/staff`. **Change it before real use.** |
+| `STAFF_PIN` | `1234` | PIN for the staff screen at `/staff`. **Change it before real use.** It can be any text, not only 4 digits; five wrong tries lock that address out for a minute. |
 | `PORT` | `3001` | Port the server listens on. |
 
 Data is stored in `data/salon.db` (SQLite). Delete the file to start empty.
@@ -79,7 +79,8 @@ of the site before printing.
 
 ## Known limits
 
-- The alert only works while the token page is open; there is no SMS or push to a closed app.
+- The alert works on any customer page while the app is open; there is no SMS or push to a closed app.
+  The device notification needs HTTPS (or localhost); without it only the in-app banner shows.
 - The camera try-on needs HTTPS (or localhost) and a reasonably recent phone.
 - No payments, fixed-time bookings, multiple chairs or multiple branches.
 - The staff PIN is a single shared PIN, sent with each staff request. Serve the site over HTTPS.

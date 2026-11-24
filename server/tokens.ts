@@ -116,10 +116,26 @@ export function tokensRouter(db: DatabaseSync, opts: { staffPin: string; now: ()
     });
   });
 
+  // Wrong PINs are limited per address so a short PIN cannot simply be guessed through.
+  const MAX_WRONG_PINS = 5;
+  const PIN_WINDOW_MS = 60_000;
+  const wrongPins = new Map<string, number[]>();
   const pinBytes = Buffer.from(opts.staffPin);
   const staff: RequestHandler = (req, _res, next) => {
+    const who = req.ip ?? 'unknown';
+    const at = opts.now().getTime();
+    const recent = (wrongPins.get(who) ?? []).filter((t) => at - t < PIN_WINDOW_MS);
+    if (recent.length >= MAX_WRONG_PINS) {
+      wrongPins.set(who, recent);
+      throw new HttpError(429, 'Too many wrong PINs. Wait a minute and try again.');
+    }
     const given = Buffer.from(req.get('x-staff-pin') ?? '');
-    if (given.length !== pinBytes.length || !timingSafeEqual(given, pinBytes)) throw new HttpError(401, 'Wrong PIN');
+    if (given.length !== pinBytes.length || !timingSafeEqual(given, pinBytes)) {
+      recent.push(at);
+      wrongPins.set(who, recent);
+      throw new HttpError(401, 'Wrong PIN');
+    }
+    wrongPins.delete(who);
     next();
   };
 

@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { SALON_NAME } from '../App.tsx';
 import { errorMessage } from '../api.ts';
-import { useSession } from '../session.tsx';
+import { OfflineNotice, useSession } from '../session.tsx';
 
 type Mode = 'guest' | 'login' | 'register';
 
@@ -14,7 +14,7 @@ const TABS: { mode: Mode; label: string }[] = [
 ];
 
 export function Welcome() {
-  const { user, loading, continueAsGuest, login, register } = useSession();
+  const { user, loading, offline, continueAsGuest, login, register } = useSession();
   const [mode, setMode] = useState<Mode>('guest');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -24,6 +24,7 @@ export function Welcome() {
 
   if (user) return <Navigate to="/styles" replace />;
   if (loading) return <p className="center muted">Loading…</p>;
+  if (offline) return <OfflineNotice />;
 
   async function submit(e: FormEvent) {
     e.preventDefault();

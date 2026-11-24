@@ -7,7 +7,8 @@ import { Styles } from './pages/Styles.tsx';
 import { Token } from './pages/Token.tsx';
 import { TryOn } from './pages/TryOn.tsx';
 import { Welcome } from './pages/Welcome.tsx';
-import { useSession } from './session.tsx';
+import { OfflineNotice, useSession } from './session.tsx';
+import { TokenWatchProvider, TurnBanner } from './tokenWatch.tsx';
 
 export const SALON_NAME = 'Burber';
 
@@ -20,8 +21,9 @@ const NAV = [
 
 /** Customer pages: need a session, share the top bar and bottom navigation. */
 function Shell({ children }: { children: ReactNode }) {
-  const { user, loading, signOut } = useSession();
+  const { user, loading, offline, signOut } = useSession();
   if (loading) return <p className="center muted">Loading…</p>;
+  if (!user && offline) return <OfflineNotice />;
   if (!user) return <Navigate to="/" replace />;
   return (
     <div className="shell">
@@ -34,7 +36,12 @@ function Shell({ children }: { children: ReactNode }) {
           </button>
         </span>
       </header>
-      <main>{children}</main>
+      <TokenWatchProvider>
+        <main>
+          <TurnBanner />
+          {children}
+        </main>
+      </TokenWatchProvider>
       <nav className="tabbar" aria-label="Main">
         {NAV.map((item) => (
           <NavLink key={item.to} to={item.to}>

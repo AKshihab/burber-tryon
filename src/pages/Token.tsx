@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, errorMessage, formatPrice } from '../api.ts';
 import type { Service, TokenView } from '../api.ts';
 import { hairstyleName, isHairstyleKey } from '../hair/styles.ts';
 import { KEYS, local } from '../storage.ts';
-import { POLL_MS, notificationPermission, sendTurnNotification, shouldAlert } from '../turnAlert.ts';
-
-type Loaded = TokenView | null;
+import { useTokenWatch } from '../tokenWatch.tsx';
+import { notificationPermission } from '../turnAlert.ts';
 
 export function Token() {
-  const [token, setToken] = useState<Loaded | undefined>(undefined);
+  // The token itself, the 15-second checks and the alert live in TokenWatchProvider (every customer page).
+  const { token, loadError, setToken } = useTokenWatch();
   const [services, setServices] = useState<Service[]>([]);
   const [serviceId, setServiceId] = useState<number | null>(null);
   const [error, setError] = useState('');
@@ -17,25 +17,6 @@ export function Token() {
 
   const storedStyle = local.get(KEYS.style);
   const styleKey = isHairstyleKey(storedStyle) ? storedStyle : null;
-
-  const refresh = useCallback(async () => {
-    try {
-      const r = await api<{ token: Loaded }>('/api/tokens/mine');
-      setToken(r.token);
-    } catch (e) {
-      // Keep showing the last known token on a failed check; only complain if we have nothing.
-      setToken((current) => {
-        if (current === undefined) setError(errorMessage(e));
-        return current;
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-    const timer = setInterval(() => void refresh(), POLL_MS);
-    return () => clearInterval(timer);
-  }, [refresh]);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,21 +33,6 @@ export function Token() {
       cancelled = true;
     };
   }, []);
-
-  // Announce once per token; forget the last announcement when there is no active token.
-  useEffect(() => {
-    if (token === undefined) return;
-    if (token === null) {
-      local.remove(KEYS.alerted);
-      return;
-    }
-    const stored = local.get(KEYS.alerted);
-    const alerted = stored === null ? null : Number(stored);
-    if (shouldAlert(token, alerted)) {
-      local.set(KEYS.alerted, String(token.number));
-      sendTurnNotification(token);
-    }
-  }, [token]);
 
   async function run(action: () => Promise<void>) {
     setError('');
@@ -111,7 +77,13 @@ export function Token() {
     return (
       <section className="page">
         <h1>Your token</h1>
-        {alertBox || <p className="muted">Loading…</p>}
+        {loadError ? (
+          <p role="alert" className="error">
+            {loadError}
+          </p>
+        ) : (
+          <p className="muted">Loading…</p>
+        )}
       </section>
     );
   }
@@ -153,11 +125,6 @@ export function Token() {
 
   return (
     <section className="page">
-      {token.notifySoon && (
-        <p role="status" className="banner">
-          Your turn is in about 15 minutes or less — please head over.
-        </p>
-      )}
       <div className="card ticket">
         <h1>
           Token <span className="number">{token.number}</span>
@@ -183,7 +150,7 @@ export function Token() {
       {waiting && permission === 'denied' && (
         <p className="hint">Notifications are blocked for this site, so keep this page open to see the alert.</p>
       )}
-      <p className="hint">The wait is an estimate. This page checks the queue every 15 seconds while it is open.</p>
+      <p className="hint">The wait is an estimate. The app checks the queue every 15 seconds while it is open.</p>
       {alertBox}
       {waiting && (
         <button type="button" className="danger" onClick={cancel} disabled={busy}>
