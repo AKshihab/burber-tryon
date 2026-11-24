@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { authRouter } from './auth.ts';
 import { HttpError } from './http.ts';
+import { tokensRouter } from './tokens.ts';
 
 export { HttpError };
 
@@ -25,7 +26,10 @@ export function createApp(db: DatabaseSync, opts: AppOptions): Express {
     res.json({ services });
   });
 
+  const now = opts.now ?? (() => new Date());
+
   app.use('/api/auth', authRouter(db));
+  app.use('/api', tokensRouter(db, { staffPin: opts.staffPin, now }));
 
   app.use('/api', (_req, _res, next) => {
     next(new HttpError(404, 'Not found'));
