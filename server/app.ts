@@ -3,13 +3,22 @@ import type { Express, NextFunction, Request, Response } from 'express';
 import path from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { authRouter } from './auth.ts';
+import type { HairEditor } from './hairEdit.ts';
 import { HttpError } from './http.ts';
+import { looksRouter } from './looks.ts';
 import { reviewsRouter } from './reviews.ts';
 import { tokensRouter } from './tokens.ts';
 
 export { HttpError };
 
-export type AppOptions = { staffPin: string; now?: () => Date; staticDir?: string };
+export type AppOptions = {
+  staffPin: string;
+  now?: () => Date;
+  staticDir?: string;
+  /** Makes the haircut pictures; without it that feature is switched off. */
+  hairEditor?: HairEditor;
+  sleep?: (ms: number) => Promise<void>;
+};
 
 export function createApp(db: DatabaseSync, opts: AppOptions): Express {
   const app = express();
@@ -31,6 +40,7 @@ export function createApp(db: DatabaseSync, opts: AppOptions): Express {
 
   app.use('/api/auth', authRouter(db));
   app.use('/api/reviews', reviewsRouter(db, { now }));
+  app.use('/api/looks', looksRouter(db, { now, editor: opts.hairEditor, sleep: opts.sleep }));
   app.use('/api', tokensRouter(db, { staffPin: opts.staffPin, now }));
 
   app.use('/api', (_req, _res, next) => {
@@ -50,8 +60,9 @@ export function createApp(db: DatabaseSync, opts: AppOptions): Express {
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     const e = err as { status?: number; statusCode?: number; message?: string };
     const status = e.status ?? e.statusCode ?? 500;
-    if (status >= 400 && status < 500) {
-      const message = err instanceof HttpError ? err.message : 'Bad request';
+    if (err instanceof HttpError || (status >= 400 && status < 500)) {
+      const other = status === 413 ? 'That file is too large' : 'Bad request';
+      const message = err instanceof HttpError ? err.message : other;
       res.status(status).json({ error: message });
       return;
     }

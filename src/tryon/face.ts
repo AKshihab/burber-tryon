@@ -7,7 +7,7 @@ export type Point = { x: number; y: number };
 export type GuideHint = 'none' | 'center' | 'closer' | 'farther' | 'ok';
 
 /** Where the face should be: centre of the oval, how far off is fine, and how wide the face may be. */
-export const GUIDE = { cx: 0.5, cy: 0.45, tolerance: 0.15, minWidth: 0.25, maxWidth: 0.6 };
+export const GUIDE = { cx: 0.5, cy: 0.52, tolerance: 0.13, minWidth: 0.25, maxWidth: 0.5 };
 
 export const HINT_TEXT: Record<GuideHint, string> = {
   none: 'Put your face inside the oval',

@@ -103,3 +103,17 @@ test('a face tracker that cannot load is explained and the camera is switched of
   unmount();
   expect(cam.stop).toHaveBeenCalledTimes(1);
 });
+
+test('a photo can be taken only while the camera is running', async () => {
+  const cam = fakeStream();
+  stubCamera(async () => cam.stream);
+  tracker.create.mockReturnValue(new Promise(() => {}));
+  const captureRef: { current: (() => Promise<Blob>) | null } = { current: null };
+  const { unmount } = render(
+    <TryOnView styleKey="buzz" color="#1b1b1b" onHint={vi.fn()} onError={vi.fn()} captureRef={captureRef} />,
+  );
+  expect(captureRef.current).toBeNull();
+  await waitFor(() => expect(captureRef.current).toEqual(expect.any(Function)));
+  unmount();
+  expect(captureRef.current).toBeNull();
+});

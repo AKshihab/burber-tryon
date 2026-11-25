@@ -6,12 +6,15 @@ import { FACE_CAMERA, applyFaceMatrix, applyHeadFit, cameraErrorMessage, guideHi
 import type { GuideHint } from './face.ts';
 import { createFaceTracker } from './tracker.ts';
 import type { FaceTracker } from './tracker.ts';
+import { takePhoto } from './photo.ts';
 
 type Props = {
   styleKey: HairstyleKey;
   color: string;
   onHint(hint: GuideHint): void;
   onError(message: string): void;
+  /** Filled with a "take a photo" function while the camera is running. */
+  captureRef?: { current: (() => Promise<Blob>) | null };
 };
 
 type Rig = { fit: THREE.Group; hair: THREE.Group | null };
@@ -29,7 +32,7 @@ function buildOccluder(): THREE.Mesh {
 }
 
 /** The live camera picture with the chosen hair drawn on the customer's head. */
-export function TryOnView({ styleKey, color, onHint, onError }: Props) {
+export function TryOnView({ styleKey, color, onHint, onError, captureRef }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rigRef = useRef<Rig | null>(null);
@@ -78,6 +81,7 @@ export function TryOnView({ styleKey, color, onHint, onError }: Props) {
         return;
       }
       if (cancelled) return;
+      if (captureRef) captureRef.current = () => takePhoto(video);
 
       try {
         tracker = await createFaceTracker();
@@ -147,6 +151,7 @@ export function TryOnView({ styleKey, color, onHint, onError }: Props) {
 
     return () => {
       cancelled = true;
+      if (captureRef) captureRef.current = null;
       cancelAnimationFrame(frame);
       stream?.getTracks().forEach((t) => t.stop());
       video.srcObject = null;

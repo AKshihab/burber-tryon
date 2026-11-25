@@ -7,6 +7,12 @@ import { renderApp } from '../testkit.tsx';
 
 const DENIED = 'Camera permission was denied. Allow the camera for this site and try again.';
 
+vi.mock('../tryon/LookPanel.tsx', () => ({
+  LookPanel: (p: { styleKey: string; color: string; capture: unknown; faceReady: boolean }) => (
+    <div data-testid="look" data-style={p.styleKey} data-color={p.color} data-camera={String(!!p.capture)} data-face={String(p.faceReady)} />
+  ),
+}));
+
 vi.mock('../tryon/TryOnView.tsx', () => ({
   TryOnView: (p: { styleKey: string; color: string; onHint(h: string): void; onError(m: string): void }) => (
     <div data-testid="camera" data-style={p.styleKey} data-color={p.color}>
@@ -29,7 +35,7 @@ test('the camera is not touched until the customer asks', () => {
   renderApp(<TryOn />);
   expect(screen.queryByTestId('camera')).toBeNull();
   expect(screen.getByRole('button', { name: 'Start camera' })).toBeTruthy();
-  expect(screen.getByText('Your camera picture stays on this device.')).toBeTruthy();
+  expect(screen.getByText('The live camera picture stays on this device. A photo is only sent if you ask for a haircut picture.')).toBeTruthy();
 });
 
 test('starting the camera shows the view with the remembered style and colour', async () => {
@@ -75,4 +81,19 @@ test('the camera can be stopped', async () => {
   await start();
   await userEvent.click(screen.getByRole('button', { name: 'Stop camera' }));
   expect(screen.queryByTestId('camera')).toBeNull();
+});
+
+test('the haircut picture follows the chosen style, the camera and the face', async () => {
+  renderApp(<TryOn />);
+  const look = () => screen.getByTestId('look').dataset;
+  expect(look()).toMatchObject({ style: 'buzz', camera: 'false', face: 'false' });
+  await userEvent.click(screen.getByRole('button', { name: 'Quiff' }));
+  await start();
+  expect(look()).toMatchObject({ style: 'quiff', camera: 'true', face: 'false' });
+  await userEvent.click(screen.getByRole('button', { name: 'fake hint' }));
+  expect(look().face).toBe('false');
+  await userEvent.click(screen.getByRole('button', { name: 'fake ok' }));
+  expect(look().face).toBe('true');
+  await userEvent.click(screen.getByRole('button', { name: 'Stop camera' }));
+  expect(look()).toMatchObject({ camera: 'false', face: 'false' });
 });

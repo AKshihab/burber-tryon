@@ -110,3 +110,12 @@ test('camera problems are explained in plain words', () => {
   expect(cameraErrorMessage(new Error('x'), true)).toBe('The camera could not be started.');
   expect(cameraErrorMessage(null, true)).toBe('The camera could not be started.');
 });
+
+test('a face that leaves no room above it for hair should move back', () => {
+  expect(guideHint(box(GUIDE.cx, GUIDE.cy, 0.55))).toBe('farther');
+});
+
+test('the biggest accepted face leaves room for a tall haircut', () => {
+  const top = GUIDE.cy - (GUIDE.maxWidth * 1.35) / 2;
+  expect(top).toBeGreaterThan(0.15);
+});

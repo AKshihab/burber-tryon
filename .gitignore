@@ -3,3 +3,6 @@ dist
 data
 .superpowers
 public/mediapipe/wasm
+.env
+.env.*
+video

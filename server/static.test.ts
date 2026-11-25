@@ -44,3 +44,8 @@ test('a missing file is a 404, not the app shell', async () => {
   const res = await request(app).get('/mediapipe/missing.wasm');
   expect(res.status).toBe(404);
 });
+
+test('the page may only talk to the salon itself, so the face tracker cannot report usage to anyone', () => {
+  const html = fs.readFileSync(path.join(import.meta.dirname, '../index.html'), 'utf8');
+  expect(html).toMatch(/http-equiv="Content-Security-Policy" content="connect-src 'self'"/);
+});

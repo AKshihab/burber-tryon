@@ -21,6 +21,13 @@ export type StaffToken = {
   hairstyleKey: string | null;
 };
 
+export type LookView = {
+  id: string;
+  status: 'waiting' | 'working' | 'done' | 'failed';
+  ahead: number;
+  styleKey: string;
+};
+
 export const CURRENCY = '৳';
 export const formatPrice = (n: number): string => `${CURRENCY}${n}`;
 
@@ -34,10 +41,13 @@ export class ApiError extends Error {
 
 export type ApiInit = { method?: string; body?: unknown; headers?: Record<string, string> };
 
-export async function api<T>(path: string, init: ApiInit = {}): Promise<T> {
+async function send(path: string, init: ApiInit): Promise<Response> {
   const headers: Record<string, string> = { ...init.headers };
-  let body: string | undefined;
-  if (init.body !== undefined) {
+  let body: string | Blob | undefined;
+  if (init.body instanceof Blob) {
+    headers['Content-Type'] = init.body.type;
+    body = init.body;
+  } else if (init.body !== undefined) {
     headers['Content-Type'] = 'application/json';
     body = JSON.stringify(init.body);
   }
@@ -50,17 +60,29 @@ export async function api<T>(path: string, init: ApiInit = {}): Promise<T> {
   } catch {
     throw new ApiError(0, 'Could not reach the salon. Check your connection and try again.');
   }
-  let data: unknown = null;
-  try {
-    data = await res.json();
-  } catch {
-    /* not JSON */
-  }
   if (!res.ok) {
+    const data = await readJson(res);
     const message = (data as { error?: unknown } | null)?.error;
     throw new ApiError(res.status, typeof message === 'string' ? message : 'Something went wrong');
   }
-  return data as T;
+  return res;
+}
+
+async function readJson(res: Response): Promise<unknown> {
+  try {
+    return await res.json();
+  } catch {
+    return null; // not JSON
+  }
+}
+
+export async function api<T>(path: string, init: ApiInit = {}): Promise<T> {
+  return (await readJson(await send(path, init))) as T;
+}
+
+/** Fetch a picture that needs the customer's session. */
+export async function apiBlob(path: string): Promise<Blob> {
+  return (await send(path, {})).blob();
 }
 
 export const errorMessage = (e: unknown): string =>

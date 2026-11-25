@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { StylePicker, useStyleChoice } from '../hair/choice.tsx';
+import { LookPanel } from '../tryon/LookPanel.tsx';
 import { TryOnView } from '../tryon/TryOnView.tsx';
 import { HINT_TEXT } from '../tryon/face.ts';
 import type { GuideHint } from '../tryon/face.ts';
@@ -11,6 +12,12 @@ export function TryOn() {
   const [started, setStarted] = useState(false);
   const [hint, setHint] = useState<GuideHint>('none');
   const [error, setError] = useState('');
+
+  const captureRef = useRef<(() => Promise<Blob>) | null>(null);
+  const capture = useCallback(async () => {
+    if (!captureRef.current) throw new Error('The camera is not running');
+    return captureRef.current();
+  }, []);
 
   const handleError = useCallback((message: string) => {
     setError(message);
@@ -30,7 +37,13 @@ export function TryOn() {
 
       {started ? (
         <>
-          <TryOnView styleKey={choice.styleKey} color={choice.color} onHint={setHint} onError={handleError} />
+          <TryOnView
+            styleKey={choice.styleKey}
+            color={choice.color}
+            onHint={setHint}
+            onError={handleError}
+            captureRef={captureRef}
+          />
           <p role="status" className="status">
             {HINT_TEXT[hint]}
           </p>
@@ -58,7 +71,16 @@ export function TryOn() {
         </>
       )}
 
-      <p className="hint">Your camera picture stays on this device.</p>
+      <LookPanel
+        styleKey={choice.styleKey}
+        color={choice.color}
+        capture={started ? capture : null}
+        faceReady={started && hint === 'ok'}
+      />
+
+      <p className="hint">
+        The live camera picture stays on this device. A photo is only sent if you ask for a haircut picture.
+      </p>
       <Link className="primary" to="/token">
         Take a token with this style
       </Link>

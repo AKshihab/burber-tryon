@@ -4,6 +4,7 @@ A phone-first web app for a salon or barber shop.
 
 - **Styles** — try four haircuts and four hair colours on a 3D head you can turn.
 - **Try on** — pick a haircut, line your face up with the oval, and see the hair on your own head in the live camera.
+- **See my haircut** — the customer agrees, takes one photo, and gets a realistic before/after picture.
 - **Catalog** — services with price and duration.
 - **Account or guest** — enter with just a name, or register with a phone number and password.
 - **Token** — take a place in the queue, see how many are ahead and the estimated wait.
@@ -37,10 +38,11 @@ Tests: `npm test`
 
 ## Camera try-on
 
-- Works in the browser with MediaPipe Face Landmarker; the camera picture never leaves the device.
+- Works in the browser with MediaPipe Face Landmarker; the live camera picture never leaves the device.
 - The face model (`public/mediapipe/face_landmarker.task`) is in the repo. The wasm runtime is copied
-  into `public/mediapipe/wasm/` by `npm install` (`scripts/setup-tryon.mjs`). Nothing is fetched
-  from the internet while the app runs.
+  into `public/mediapipe/wasm/` by `npm install` (`scripts/setup-tryon.mjs`). The page is
+  only allowed to talk to its own server (`Content-Security-Policy` in `index.html`), which also blocks the
+  usage statistics MediaPipe tries to send to Google.
 - **Browsers only allow the camera on `localhost` or an `https://` address.** To use it on a phone,
   the site must be served over HTTPS. On plain `http://192.168.x.x` the app says so and offers the
   3D preview instead.
@@ -48,11 +50,24 @@ Tests: `npm test`
   the hair you already have, so it reads best on short hair.
 - If hair sits too high, low, big or small, adjust `HEAD_FIT` in `src/tryon/face.ts`.
 
+## Haircut pictures (AI)
+
+- Needs `EURI_API_KEY`, a key from [Euron](https://euron.one/euri). Without it the feature is hidden.
+  Locally put it in `.env` (git ignores it); on the server set it as an environment variable.
+- The key stays on the server. The photo goes browser → salon server → Euron (`euri-image-edit`).
+- The salon keeps photos and pictures in memory only: the photo until its picture is made, the picture
+  for 30 minutes. Euron keeps the result at a private link for 24 hours; how long it keeps the photo is not known.
+- A picture usually took 30-100 seconds in tests (once 163). They are made one at a time; "busy" is tried three times.
+- Limits (in `server/looks.ts`): 6 pictures per customer and 150 for the salon per day, 8 waiting at once.
+  Restarting the server forgets pictures and resets these counts.
+- The AI can change more than the hair; the page tells the customer it is a guide.
+
 ## Settings
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `STAFF_PIN` | `1234` | PIN for the staff screen at `/staff`. **Change it before real use.** It can be any text, not only 4 digits; five wrong tries lock that address out for a minute. |
+| `EURI_API_KEY` | none | Euron key for haircut pictures. Never commit it. |
 | `PORT` | `3001` | Port the server listens on. |
 
 Data is stored in `data/salon.db` (SQLite). Delete the file to start empty.
